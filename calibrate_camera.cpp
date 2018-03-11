@@ -73,7 +73,7 @@ returns nothing
 
 int start_calibration(stringvec& v)
 {
-  int numBoards = 36;
+  int numBoards = 50;
   int numCornersHor = 7;
   int numCornersVer = 7;
 
@@ -92,7 +92,7 @@ int start_calibration(stringvec& v)
   Size board_sz = Size(numCornersHor, numCornersVer);
 
   vector<vector<Point3f>> object_points;
-  vector<vector<Point2f>> image_points;
+  vector<vector<Point2f>> image_points, image_points2;
 
   vector<Point2f> corners;
   int successes=0;
@@ -175,6 +175,18 @@ int start_calibration(stringvec& v)
   FileStorage fs(param_filename, FileStorage::WRITE);
   fs << "camera_matrix" << intrinsic;
   fs << "distortion_coefficients"  << distCoeffs;
+	double total_error = 0;
+	for (int i = 0; i < static_cast<int>(object_points.size()); i++)
+	{
+		double error = 0;
+		vector<Point2f> tmp_points;
+		projectPoints(object_points[i], rvecs[i], tvecs[i], intrinsic, distCoeffs, tmp_points);
+		//image_points2.push_back(tmp_points);
+		error = norm(image_points[i], tmp_points) / static_cast<double>(image_points[i].size());
+		cout << "Error:" << error << endl;
+		total_error += error;
+	}
+	cout << "Total error:" << total_error / static_cast<double>(object_points.size());
   fs.release();
   return 0;
 }

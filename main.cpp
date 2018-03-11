@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     //string vector to hold the images paths
     stringvec v;
     //path of directory containing the images
-    string path = "calibration_pics/";
+    string path = "calibration_pics/Set5/";
     //reading the images in the specified directory
     read_directory(path, v);
     //printing the detected images paths

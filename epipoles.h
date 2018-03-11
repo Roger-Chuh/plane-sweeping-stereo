@@ -17,6 +17,7 @@ Date Created: 18th December 2017 */
 #include <errno.h>
 #include <vector>
 #include <math.h>
+#include <Eigen/Dense>
 #include "opencv2/core.hpp"
 #include <opencv2/core/utility.hpp>
 #include "opencv2/imgproc.hpp"
