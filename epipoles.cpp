@@ -125,6 +125,7 @@ static void projectgivenPoints(const std::string& title, const cv::Mat R, const 
                 const cv::Mat& img1, const cv::Mat& img2,
                 const std::vector<cv::Point_<T>> points1,
                 const std::vector<cv::Point_<T>> points2,
+                std::vector<cv::Point_<T>>& projected_points1,
                 const float inlierDistance)
 {
   CV_Assert(img1.size() == img2.size() && img1.type() == img2.type());
@@ -155,13 +156,12 @@ static void projectgivenPoints(const std::string& title, const cv::Mat R, const 
   cv::RNG rng(0);
   int flag = 0;
   std::vector<Point3f> h_points, three_D_points;
-  std::vector<Point2f> projected_points1;
   //Getting the intrinsic camera matrix calculated during camera calibration
   string intr_param_filename = "camera_params.xml";
   Mat intrinsic, Rvec = Mat::zeros(3,1,CV_64FC1), dist = Mat::zeros(1,5,CV_64FC1);
   FileStorage intr_fs(intr_param_filename, FileStorage::READ);
   intr_fs["camera_matrix"] >> intrinsic;
-  intr_fs["distortion_coefficients"] >> dist;
+  //intr_fs["distortion_coefficients"] >> dist;
   //Converting the set of corresponding points in the left image to homogenous co-ordinates
   convertPointsToHomogeneous(points1, h_points);
   double f = intrinsic.at<double>(0,0);
@@ -171,6 +171,14 @@ static void projectgivenPoints(const std::string& title, const cv::Mat R, const 
   {
 
 
+    Point3f p;
+    p.x = (pt.x - cx);
+    p.y = (pt.y - cy);
+    p.z = f;
+    three_D_points.push_back(p);
+
+
+    /*
     Mat M,tm,tmp_p = Mat::zeros(3,1,CV_64FC1);
     tmp_p.at<double>(0,0) = pt.x;
     tmp_p.at<double>(1,0) = pt.y;
@@ -183,7 +191,7 @@ static void projectgivenPoints(const std::string& title, const cv::Mat R, const 
     p.z = tm.at<double>(2,0);
     three_D_points.push_back(p);
 
-
+    */
   }
   std::vector<Point2f> transf_points1;
 
@@ -246,7 +254,7 @@ static void projectgivenPoints(const std::string& title, const cv::Mat R, const 
         //cout << "Calculated eucliedian point is:\n" << eucl_point << endl;
         //center_pt.x = eucl_point.at<double>(0,0);
         //center_pt.y = eucl_point.at<double>(1,0);
-        cout << projected_points1[i] << endl;
+        //cout << projected_points1[i] << endl;
         cv::circle(outImg(rect2), projected_points1[i], 8, color2, -1, CV_AA);
     }
     else
@@ -412,7 +420,7 @@ vector<string> v: a vector of strings that holds the paths of the images to be u
 Returns:
 does not return anything */
 
-void compute_epipoles(stringvec &v )
+void compute_epipoles(stringvec &v, vector<Mat> & R_list, vector<Mat> & t_list)
 {
   if(v.size() <2)
   {
@@ -428,6 +436,7 @@ void compute_epipoles(stringvec &v )
   FileStorage fs(fundamental_mat_file, FileStorage::WRITE);
   FileStorage fs_extr(extrinsic_params_file, FileStorage::WRITE);
   vector<Mat> F_list;
+
   unsigned int sz = v.size();
   unsigned int no_of_images = 3, k = 1;
   Mat K, Kt;
@@ -464,21 +473,36 @@ void compute_epipoles(stringvec &v )
     }
 
     //commenting to implement manual selection of points
-
-    cout << "Starting to find similar features in the two images using SURF detector...\n";
+    //using SURF features
+    //cout << "Starting to find similar features in the two images using SURF detector...\n";
     //-- Step 1: Detect the keypoints using SURF Detector, compute the descriptors
+    /*
     int minHessian = 400;
     Ptr<SURF> detector = SURF::create();
+
     detector->setHessianThreshold(minHessian);
     std::vector<KeyPoint> keypoints_1, keypoints_2;
     Mat descriptors_1, descriptors_2;
     detector->detectAndCompute( img_1, Mat(), keypoints_1, descriptors_1 );
     detector->detectAndCompute( img_2, Mat(), keypoints_2, descriptors_2 );
+    */
+    /*
+    cout << "Starting to find similar features in the two images using SIFT detector...\n";
+    // -- Step 1: Detect the keypoints using SIFT Detector, compute the descriptors
+    cv::Ptr<cv::xfeatures2d::SIFT> sift;
+    sift = cv::xfeatures2d::SIFT::create (0,4,0.04,5,1.6);
+    std::vector<KeyPoint> keypoints_1, keypoints_2;
+    Mat descriptors_1, descriptors_2;
+    sift->detect (img_1, keypoints_1);
+    sift->compute (img_1, keypoints_1, descriptors_1);
+    sift->detect (img_2,keypoints_2);
+    sift->compute (img_2, keypoints_2, descriptors_2);
+
     //-- Step 2: Matching descriptor vectors using FLANN matcher
     FlannBasedMatcher matcher;
     std::vector< DMatch > matches;
     matcher.match( descriptors_1, descriptors_2, matches );
-    double max_dist = 0; double min_dist = 10;
+    double max_dist = 0; double min_dist = 100;
     //-- Quick calculation of max and min distances between keypoints
     for( int i = 0; i < descriptors_1.rows; i++ )
     { double dist = matches[i].distance;
@@ -494,7 +518,7 @@ void compute_epipoles(stringvec &v )
     std::vector< DMatch > good_matches;
     cout << "Selecting good matches...\n";
     for( int i = 0; i < descriptors_1.rows; i++ )
-    { if( matches[i].distance <= max(1*min_dist, 0.02) )
+    { if( matches[i].distance <= max(2*min_dist, 0.02) )
       { good_matches.push_back( matches[i]); }
     }
     //-- Draw only "good" matches
@@ -524,16 +548,16 @@ void compute_epipoles(stringvec &v )
       points1.push_back( keypoints_1[ good_matches[i].queryIdx ].pt );
       points2.push_back( keypoints_2[ good_matches[i].trainIdx ].pt );
     }
-
+    */
 
 
 
     //commenting to implement auto point collection
-    /*
+
     std::vector<Point2f> points1;
     std::vector<Point2f> points2;
     getPoints(points1, points2, img_1, img_2);
-    */
+    
     Mat F, E, intr_trans;
     cout << "Calculating the Essential matrix...\n";
     string intr_param_filename = "camera_params.xml";
@@ -541,22 +565,22 @@ void compute_epipoles(stringvec &v )
     FileStorage intr_fs(intr_param_filename, FileStorage::READ);
     intr_fs["camera_matrix"] >> intrinsic;
     double f = intrinsic.at<double>(0,0);
-    //E = findEssentialMat(points1, points2, f, Point2d(0, 0), RANSAC, 0.8, 3);
+    E = findEssentialMat(points1, points2, f, Point2d(0, 0), RANSAC, 0.7, 1-3);
 
-    //transpose(intrinsic,intr_trans);
-    //F = intr_trans.inv() * E * intrinsic.inv();
+    transpose(intrinsic,intr_trans);
+    F = intr_trans.inv() * E * intrinsic.inv();
     std::vector<uchar> mask(points1.size());
     cout << points1.size() << '\n';
     cout << "Calculating Fundamental Matrix...\n";
 
-    F = findFundamentalMat(points1, points2, RANSAC, 1, 0.99);
+    //F = findFundamentalMat(points1, points2, CV_FM_RANSAC, 1, 0.80);
     F_list.push_back(F);
     string F_mat_name = "F" + to_string(k);
     //cout << H_mat_name << endl;
     fs << F_mat_name << F;
     cout << "Calculated and stored the fundamental matrix. The fundamental matrix is:\n" << F << endl;
 
-    E = intrinsic.t() * F * intrinsic;
+    //E = intrinsic.t() * F * intrinsic;
     string E_mat_name = "E" + to_string(k);
     fs << E_mat_name << E;
     cout << "Calculated and stored the essential matrix. The essential matrix is:\n" << E << endl;
@@ -607,6 +631,21 @@ void compute_epipoles(stringvec &v )
     cout << "Calculated Rotation Matrix is:\n" << Rcalc << endl;
     cout << "Calculated Translation Matrix is:\n" << tcalc << endl;
 
+
+    //checking the determinant of the U and V matrices of the SVD decomp of the selected Essential Matrix
+    /*
+    Mat svd_e,svd_w,svd_u,svd_vt,svd_v;
+    svd_e = E;
+    SVDecomp(svd_e, svd_w, svd_u, svd_vt);
+    cout << "Printing the determinant of u:" << endl << determinant(svd_u);
+    transpose(svd_vt,svd_v);
+    cout << "Printing the determinant of v:" << endl << determinant(svd_v);
+    if ((determinant(svd_u) != 1) || (determinant(svd_v != 1)))
+    {
+      E = -E;
+      decomposeEssentialMat(E, R1, R2, t);
+    }
+    */
     //Checking if R2*R2(transpose) = I and det(R2) = 1
     Rdet = 0.0;
     transpose(R1, Rt);
@@ -615,11 +654,29 @@ void compute_epipoles(stringvec &v )
     Rdet = determinant(R1);
     cout << "Determinant of Rcalc is:\n" << Rdet << endl;
     //projecting using the first Rotation Matrix
-    projectgivenPoints("projected points", R1, F, E, t, img_1, img_2, points1, points2, 2);
+    std::vector<Point2f> points3;
+    projectgivenPoints("projected points", R1, F, E, t, img_1, img_2, points1, points2, points3, 2);
+    projectgivenPoints("projected points", R1, F, E, -t, img_1, img_2, points1, points2, points3, 2);
+    projectgivenPoints("projected points", R1.t(), F, E, t, img_1, img_2, points1, points2, points3, 2);
+    projectgivenPoints("projected points", R1.t(), F, E, -t, img_1, img_2, points1, points2, points3, 2);
+    double error1, error2;
+    error1 = norm(points3, points2) / static_cast<double>(points2.size());
+    cout << "Re-projection error obtained is: " << error1 << endl;
     //projecting using the second Rotation Matrix
-    projectgivenPoints("projected points", R2, F, E, t, img_1, img_2, points1, points2, 2);
+    projectgivenPoints("projected points", R2, F, E, t, img_1, img_2, points1, points2, points3, 2);
+      projectgivenPoints("projected points", R2.t(), F, E, t, img_1, img_2, points1, points2, points3, 2);
 
-
+    error2 = norm(points3, points2) / static_cast<double>(points2.size());
+    cout << "Re-projection error obtained is: " << error2 << endl;
+    if (error1 <= error2)
+    {
+      R_list.push_back(R1);
+    }
+    else
+    {
+      R_list.push_back(R2);
+    }
+    t_list.push_back(t);
   }
   fs.release();
   fs_extr.release();

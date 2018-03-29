@@ -4,11 +4,13 @@
 #include "calibrate_camera.h"
 #include "undistort_images.h"
 #include "epipoles.h"
+#include "stereo.h"
 
 //main Function
 int main(int argc, char* argv[])
 {
   int res = 0;
+  std::vector<Mat> R_list, t_list;
   //chack if any arguments are given
   if (argc != 1)
   {
@@ -39,7 +41,10 @@ int main(int argc, char* argv[])
     //string vector to hold paths of the undistorted images
     stringvec v1;
     read_directory("pictures/", v1);
-    compute_epipoles(v1);
-    cout << "b";
+    compute_epipoles(v1, R_list, t_list);
+    vector<Mat> norm_t_list, depth_images;
+    vector<double> min_params;
+    find_alpha_gamma(R_list, t_list, norm_t_list, min_params);
+    find_depth(v1, R_list, norm_t_list, depth_images);
   }
 }

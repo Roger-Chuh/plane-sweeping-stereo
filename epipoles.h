@@ -1,4 +1,4 @@
-/* Header file that declares all methods used to compute the essential matrix
+/* Header file that declares all methods used to compute the essential matrix, fundamental_matrix, Rotation matrices and Traslation vectors
 Author: Sasidharan Mahalingam
 Date Created: 18th December 2017 */
 
@@ -37,7 +37,7 @@ using namespace std;
 typedef std::vector<std::string> stringvec;
 
 //function that caluculates corresponding matching points in the given images
-void compute_epipoles(stringvec &);
+void compute_epipoles(stringvec &, vector<Mat> & , vector<Mat> & );
 
 //function that draws lines when points and the corresponding lines are given
 void draw_lines(Mat, Mat, std::vector<Point3f>, std::vector<Point2f>, std::vector<Point2f>, std::vector<uchar>);
@@ -60,6 +60,7 @@ static void projectgivenPoints(const std::string& title, const cv::Mat R, const 
                 const cv::Mat& img1, const cv::Mat& img2,
                 const std::vector<cv::Point_<T>> points1,
                 const std::vector<cv::Point_<T>> points2,
+                std::vector<cv::Point_<T>>& projected_points1,
                 const float inlierDistance);
 
 void calculateRT(const Mat& E, Mat& R, Mat& t);
